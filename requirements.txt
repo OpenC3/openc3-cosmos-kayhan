@@ -1,0 +1,2 @@
+# Python dependencies
+satcat==1.5.1

@@ -1,0 +1,35 @@
+TELEMETRY KAYHAN STATUS BIG_ENDIAN "Status of the Kayhan SatCat GPS upload microservice"
+  APPEND_ID_ITEM PKTID 16 UINT 1 "Packet ID"
+  APPEND_ITEM STATE 8 UINT "Result of the most recent microservice run"
+    STATE INITIALIZED 0 YELLOW
+    STATE OK 1 GREEN
+    STATE NO_DATA 2 YELLOW
+    STATE ERROR 3 RED
+  APPEND_ITEM MESSAGE 4096 STRING "Detail of the most recent run including any error"
+  APPEND_ITEM NORAD_ID 32 UINT "NORAD catalog ID the GPS data is uploaded for"
+  APPEND_ITEM GPS_SOURCE 1024 STRING "Telemetry the GPS history is queried from"
+  APPEND_ITEM PERIOD 32 UINT "Seconds between microservice runs"
+    UNITS SECONDS S
+  APPEND_ITEM RUN_COUNT 32 UINT "Microservice runs since startup"
+  APPEND_ITEM SUCCESS_COUNT 32 UINT "Runs which uploaded GPS data to Kayhan"
+  APPEND_ITEM ERROR_COUNT 32 UINT "Runs which failed"
+  APPEND_ITEM CONSECUTIVE_ERRORS 32 UINT "Consecutive failed runs, 0 when healthy"
+    LIMITS DEFAULT 1 ENABLED -1 -1 1 3
+  APPEND_ITEM QUERY_START 256 STRING "Start of the queried GPS history window"
+  APPEND_ITEM QUERY_END 256 STRING "End of the queried GPS history window"
+  APPEND_ITEM WINDOW_DURATION 32 FLOAT "Length of the queried GPS history window"
+    UNITS SECONDS S
+    FORMAT_STRING "%0.1f"
+  APPEND_ITEM SAMPLES_FOUND 32 UINT "GPS samples found in the history window"
+  APPEND_ITEM SAMPLES_SENT 32 UINT "GPS samples uploaded to Kayhan after downsampling"
+  APPEND_ITEM FILENAME 512 STRING "Name of the GNSS file uploaded to Kayhan"
+  APPEND_ITEM UPLOAD_SIZE 32 UINT "Size of the GNSS file uploaded to Kayhan"
+    UNITS BYTES B
+  APPEND_ITEM QUERY_DURATION 32 FLOAT "Time spent querying the GPS history"
+    UNITS SECONDS S
+    FORMAT_STRING "%0.3f"
+  APPEND_ITEM UPLOAD_DURATION 32 FLOAT "Time spent uploading to the Kayhan SatCat API"
+    UNITS SECONDS S
+    FORMAT_STRING "%0.3f"
+  APPEND_ITEM LAST_SUCCESS 256 STRING "Time of the last successful upload to Kayhan"
+  APPEND_ITEM NEXT_RUN 256 STRING "Time the microservice will run again"

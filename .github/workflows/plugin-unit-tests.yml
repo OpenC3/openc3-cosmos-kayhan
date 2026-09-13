@@ -1,0 +1,25 @@
+# Runs the plugin's unit tests on every push and pull request.
+# The workflow itself lives in OpenC3/.github so every plugin shares one copy.
+# Python tests are discovered in tests/, Ruby specs would be in spec/.
+
+name: Plugin Unit Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    uses: OpenC3/.github/.github/workflows/plugin-unit-tests-reusable.yml@main
+    with:
+      plugin_directory: .
+      require_tests: true

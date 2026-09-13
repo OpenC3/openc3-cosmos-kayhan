@@ -1,0 +1,37 @@
+# Builds the gem, optionally publishes it, and creates a tag and GitHub release.
+# The workflow itself lives in OpenC3/.github so every plugin shares one copy.
+#
+# Requires the OpenC3 admin account API token in the repo secrets as
+# OPENC3_API_TOKEN, and for RubyGems publishing, a RubyGems API key as
+# RUBYGEMS_API_KEY.
+
+name: Release COSMOS Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number'
+        required: true
+        type: string
+      deploy_to_store:
+        description: 'Deploy to OpenC3 App Store'
+        required: false
+        type: boolean
+        default: true
+      deploy_to_rubygems:
+        description: 'Publish the gem to RubyGems'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    uses: OpenC3/.github/.github/workflows/release-cosmos-plugin-reusable.yml@main
+    with:
+      version: ${{ inputs.version }}
+      deploy_to_store: ${{ inputs.deploy_to_store }}
+      deploy_to_rubygems: ${{ inputs.deploy_to_rubygems }}
+    secrets:
+      OPENC3_API_TOKEN: ${{ secrets.OPENC3_API_TOKEN }}
+      RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}

@@ -1,0 +1,43 @@
+# Builds the plugin and installs it into a real COSMOS with Playwright.
+# The workflow itself lives in OpenC3/.github so every plugin shares one copy.
+#
+# install_demo is on because this plugin's defaults read GPS telemetry from the
+# demo's INST ADCS packet.
+
+name: Plugin Playwright
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+  # Weekly against whatever COSMOS release is current, so a new COSMOS that
+  # breaks the plugin surfaces even when nothing here has changed. Off the hour
+  # because scheduled runs at :00 get queued behind everyone else's.
+  schedule:
+    - cron: '27 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      cosmos_version:
+        description: 'COSMOS version to run, or latest'
+        required: false
+        type: string
+        default: 'latest'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Superseding a pull request run is fine, but a scheduled run and a push to
+  # main share a ref, so cancelling on those would have them kill each other
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  playwright:
+    uses: OpenC3/.github/.github/workflows/plugin-playwright-reusable.yml@main
+    with:
+      plugin_directory: .
+      expected_targets: KAYHAN
+      install_demo: true
+      cosmos_version: ${{ inputs.cosmos_version || 'latest' }}

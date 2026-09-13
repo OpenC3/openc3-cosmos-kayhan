@@ -1,0 +1,3 @@
+# Test-only dependencies. The tests also need openc3 and the plugin's own
+# requirements.txt (satcat) importable.
+pytest>=8.0

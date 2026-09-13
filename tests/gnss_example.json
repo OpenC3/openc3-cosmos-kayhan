@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "operator": "Example Operator",
+    "objectId": 12345,
+    "timeSystem": "UTC",
+    "ecefFrame": "ITRF2020",
+    "unitSystem": "kg-m-s-rad"
+  },
+  "data": [
+    {
+      "time": "2025-03-25T17:41:24.123456+00:00",
+      "ecefPosX": -1426305.02,
+      "ecefPosY": -5629278.0,
+      "ecefPosZ": -3722229.32,
+      "ecefVelX": -2539.366545,
+      "ecefVelY": -3535.773395,
+      "ecefVelZ": 6322.35352,
+      "dataValid": 1
+    },
+    {
+      "time": "2025-03-25T17:42:24.123456+00:00",
+      "ecefPosX": -1576353.96,
+      "ecefPosY": -5828381.16,
+      "ecefPosZ": -3335028.18,
+      "ecefVelX": -2459.55953,
+      "ecefVelY": -3098.342475,
+      "ecefVelZ": 6580.107525,
+      "dataValid": 1
+    },
+    {
+      "time": "2025-03-25T17:43:24.123456+00:00",
+      "ecefPosX": -1721161.34,
+      "ecefPosY": -6000823.6,
+      "ecefPosZ": -2933196.54,
+      "ecefVelX": -2365.047255,
+      "ecefVelY": -2647.85447,
+      "ecefVelZ": 6809.249765,
+      "dataValid": 1
+    },
+    {
+      "time": "2025-03-25T17:44:24.123456+00:00",
+      "ecefPosX": -1859867.38,
+      "ecefPosY": -6145907.8,
+      "ecefPosZ": -2518506.4,
+      "ecefVelX": -2256.162705,
+      "ecefVelY": -2186.57954,
+      "ecefVelZ": 7008.59011,
+      "dataValid": 1
+    }
+  ]
+}

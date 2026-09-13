@@ -1,0 +1,69 @@
+# LANGUAGE python
+# Set VARIABLEs here to allow variation in your plugin
+
+VARIABLE kayhan_target_name KAYHAN
+
+# NORAD catalog ID (5 or 9 digits) of the spacecraft the GPS data belongs to.
+# Kayhan uses this to associate the uploaded GNSS data with the right object.
+VARIABLE gps_norad_id 99999
+
+# Telemetry containing the spacecraft GPS position and velocity
+VARIABLE gps_target_name INST
+VARIABLE gps_packet_name ADCS
+VARIABLE gps_x_item_name POSX
+VARIABLE gps_y_item_name POSY
+VARIABLE gps_z_item_name POSZ
+VARIABLE gps_vx_item_name VELX
+VARIABLE gps_vy_item_name VELY
+VARIABLE gps_vz_item_name VELZ
+# Set false to upload position only (velocity is optional to Kayhan)
+VARIABLE gps_send_velocity true
+
+# Your organization name, written to the GNSS file so Kayhan knows who sent it
+VARIABLE kayhan_operator "Example Operator"
+# ECEF realization the GPS telemetry is given in
+VARIABLE gps_ecef_frame ITRF2020
+# Kayhan requires meters and meters per second. These multiply the telemetry to
+# get there, e.g. use 1000 if your GPS items are in kilometers.
+VARIABLE gps_position_scale 1.0
+VARIABLE gps_velocity_scale 1.0
+
+# How often to query GPS history and upload it to Kayhan. Each run queries the
+# history for the period which just elapsed, so no GPS data is missed.
+VARIABLE kayhan_update_period_s 3600
+# GPS samples are downsampled to no more than one per this many seconds. Kayhan
+# recommends ~10s to stay under the OD upload size limit.
+VARIABLE kayhan_sample_interval_s 10
+
+# Kayhan SatCat API. Change the base URL only if directed to by Kayhan.
+VARIABLE satcat_base_url https://satcat.com/
+VARIABLE satcat_timeout_s 120
+
+TARGET KAYHAN <%= kayhan_target_name %>
+
+MICROSERVICE KAYHAN_GPS kayhan-gps-microservice
+  CMD python kayhan_gps.py
+  OPTION KAYHAN_TARGET_NAME <%= kayhan_target_name %>
+  OPTION GPS_NORAD_ID <%= gps_norad_id %>
+  OPTION GPS_TARGET_NAME <%= gps_target_name %>
+  OPTION GPS_PACKET_NAME <%= gps_packet_name %>
+  OPTION GPS_X_ITEM_NAME <%= gps_x_item_name %>
+  OPTION GPS_Y_ITEM_NAME <%= gps_y_item_name %>
+  OPTION GPS_Z_ITEM_NAME <%= gps_z_item_name %>
+  OPTION GPS_VX_ITEM_NAME <%= gps_vx_item_name %>
+  OPTION GPS_VY_ITEM_NAME <%= gps_vy_item_name %>
+  OPTION GPS_VZ_ITEM_NAME <%= gps_vz_item_name %>
+  OPTION GPS_SEND_VELOCITY <%= gps_send_velocity %>
+  OPTION KAYHAN_OPERATOR "<%= kayhan_operator %>"
+  OPTION GPS_ECEF_FRAME <%= gps_ecef_frame %>
+  OPTION GPS_POSITION_SCALE <%= gps_position_scale %>
+  OPTION GPS_VELOCITY_SCALE <%= gps_velocity_scale %>
+  OPTION PERIOD <%= kayhan_update_period_s %>
+  OPTION SAMPLE_INTERVAL <%= kayhan_sample_interval_s %>
+  OPTION SATCAT_BASE_URL <%= satcat_base_url %>
+  OPTION SATCAT_TIMEOUT <%= satcat_timeout_s %>
+  # Kayhan SatCat API credentials. Create both secrets in the Admin / Secrets
+  # tab before installing this plugin. The environment variable names are the
+  # ones the satcat SDK reads its client_credentials settings from.
+  SECRET ENV KAYHAN_CLIENT_ID SATCAT_AUTH_CLIENT_ID
+  SECRET ENV KAYHAN_CLIENT_SECRET SATCAT_AUTH_CLIENT_SECRET
