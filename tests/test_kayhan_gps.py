@@ -83,20 +83,23 @@ class TestConfigValidation:
 
 
 class TestQueryGpsHistory:
-    def test_requests_the_window_and_strips_the_limits_suffix(self, microservice, kayhan_gps):
+    def test_requests_the_window_as_five_element_lookup_items(self, microservice, kayhan_gps):
         service = microservice()
         kayhan_gps.rows = [tlm_row(BASE_TIME)]
 
         service.query_gps_history(BASE_TIME, BASE_TIME + 60)
 
-        items, kwargs = kayhan_gps.tlm_values_calls[-1]
-        # get_tlm_available tacks __LIMITS onto items which have limits, which the
-        # Python get_tlm_values rejects
-        assert all(not item.endswith("__LIMITS") for item in items)
-        assert items[0] == "INST__ADCS__PACKET_TIMESECONDS__RAW"
-        assert items[1] == "INST__ADCS__POSX__RAW"
+        items, kwargs = kayhan_gps.lookup_calls[-1]
+        # The time series lookup takes [target, packet, item, value type, limits].
+        # Anything else raises "not enough values to unpack (expected 5, got 4)"
+        assert all(len(item) == 5 for item in items)
+        assert items[0] == ["INST", "ADCS", "PACKET_TIMESECONDS", "RAW", None]
+        # get_tlm_available tacks __LIMITS onto POSX which have limits, which we
+        # don't need, so no limits state is requested
+        assert items[1] == ["INST", "ADCS", "POSX", "RAW", None]
         assert kwargs["start_time"] == "2025-09-07T20:00:00Z"
         assert kwargs["end_time"] == "2025-09-07T20:01:00Z"
+        assert kwargs["scope"] == "DEFAULT"
 
     def test_downsamples_to_the_sample_interval(self, microservice, kayhan_gps):
         service = microservice()
@@ -146,7 +149,7 @@ class TestQueryGpsHistory:
         assert samples[0]["ecefVelZ"] == 6000.0
 
     def test_handles_a_flattened_single_row_response(self, microservice, kayhan_gps):
-        # get_tlm_values returns just the pairs, not a list of rows, for one row
+        # The lookup returns just the pairs, not a list of rows, for one row
         service = microservice()
         kayhan_gps.rows = tlm_row(BASE_TIME)
 
@@ -294,7 +297,7 @@ class TestRunOnce:
         def explode(items, **kwargs):
             raise RuntimeError("tsdb unavailable")
 
-        kayhan_gps.get_tlm_values = explode
+        kayhan_gps.CvtModel.tsdb_lookup = explode
 
         service.run_once()
         failed = kayhan_gps.injected[-1][2]
@@ -309,6 +312,10 @@ class TestRunOnce:
         assert retry["QUERY_START"] == failed["QUERY_START"]
         assert retry["QUERY_END"] > failed["QUERY_END"]
         assert retry["CONSECUTIVE_ERRORS"] == 2
+        # The failure is logged with its traceback, not just reported in STATUS
+        logged = service.logger.messages["error"][-1]
+        assert "tsdb unavailable" in logged
+        assert "Traceback" in logged
 
     def test_truncates_a_long_error_to_fit_the_message_item(self, microservice, kayhan_gps):
         service = microservice()
@@ -316,7 +323,7 @@ class TestRunOnce:
         def explode(items, **kwargs):
             raise RuntimeError("x" * 5000)
 
-        kayhan_gps.get_tlm_values = explode
+        kayhan_gps.CvtModel.tsdb_lookup = explode
 
         service.run_once()
 

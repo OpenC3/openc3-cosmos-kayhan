@@ -12,6 +12,7 @@ Every PERIOD seconds this microservice:
 import json
 import os
 import time
+import traceback
 from datetime import datetime, timezone
 from io import BytesIO
 
@@ -25,6 +26,7 @@ for path in glob.glob("/gems/gems/**/lib"):
     add_to_search_path(path, True)
 
 from openc3.microservices.microservice import Microservice
+from openc3.models.cvt_model import CvtModel
 from openc3.utilities.sleeper import Sleeper
 from openc3.api import *
 
@@ -43,7 +45,6 @@ DEFAULT_SAMPLE_INTERVAL_S = 10
 DEFAULT_SATCAT_TIMEOUT_S = 120
 # Name of the status packet in the KAYHAN target
 STATUS_PACKET_NAME = "STATUS"
-LIMITS_SUFFIX = "__LIMITS"
 # Characters the STATUS MESSAGE and GPS_SOURCE items hold. Writing a longer
 # string raises, which would lose the whole status packet, so they're truncated.
 MAX_MESSAGE_CHARS = 512
@@ -219,6 +220,10 @@ class KayhanGps(Microservice):
         self.window_start = max(self.window_start, now - self.period * MAX_BACKFILL_PERIODS)
 
         self.run_count += 1
+        self.logger.info(
+            f"Kayhan GPS run {self.run_count}: querying {self.gps_source} from "
+            f"{iso_utc(self.window_start)} to {iso_utc(now)}"
+        )
         status = {
             "NORAD_ID": self.norad_id or 0,
             "GPS_SOURCE": self.gps_source,
@@ -277,7 +282,12 @@ class KayhanGps(Microservice):
             self.error = error
             status["STATE"] = "ERROR"
             status["MESSAGE"] = truncate(repr(error), MAX_MESSAGE_CHARS)
-            self.logger.error(f"Kayhan GPS upload failed, retrying next period: {repr(error)}")
+            # The repr alone doesn't say where the error came from, so log the
+            # traceback: these failures are usually raised deep inside a COSMOS
+            # API or the satcat SDK
+            self.logger.error(
+                f"Kayhan GPS upload failed, retrying next period: {repr(error)}\n{traceback.format_exc()}"
+            )
 
         status["SUCCESS_COUNT"] = self.success_count
         status["ERROR_COUNT"] = self.error_count
@@ -304,15 +314,33 @@ class KayhanGps(Microservice):
         missing = [items[index] for index, actual in enumerate(available) if actual is None]
         if missing:
             raise RuntimeError(f"Telemetry item(s) do not exist: {', '.join(missing)}")
-        # It also appends __LIMITS to items which have limits, which get_tlm_values
-        # does not accept, so strip it back off
-        available = [item[: -len(LIMITS_SUFFIX)] if item.endswith(LIMITS_SUFFIX) else item for item in available]
 
-        rows = get_tlm_values(available, start_time=iso_utc(start_time), end_time=iso_utc(end_time))
+        # TODO: the historical lookup is done through the model rather than the
+        # get_tlm_values API because the Python API is broken for it (as of COSMOS 7.4.0): 
+        # it builds four element items while the time series lookup requires a fifth limits element,
+        # so every call raises ValueError('not enough values to unpack (expected 5,
+        # got 4)'). CvtModel.tsdb_lookup is exactly what get_tlm_values calls and has
+        # taken the same arguments since COSMOS 7.0, so this works on every release
+        # the plugin supports. Once the API is fixed this whole block becomes:
+        #   rows = get_tlm_values(available, start_time=..., end_time=...)
+        rows = CvtModel.tsdb_lookup(
+            [self.lookup_item(item) for item in available],
+            start_time=iso_utc(start_time),
+            end_time=iso_utc(end_time),
+            scope=self.scope,
+        )
         return self.build_samples(rows)
 
+    def lookup_item(self, item):
+        """Build the [target, packet, item, value type, limits] element the time series
+        lookup takes from a TGT__PKT__ITEM__TYPE item name. get_tlm_available appends
+        __LIMITS to items which have limits, which is dropped here: we only need the
+        values, so there's no reason to query the limits state columns"""
+        target_name, packet_name, item_name, value_type = item.split("__")[0:4]
+        return [target_name, packet_name, item_name, value_type, None]
+
     def build_samples(self, rows):
-        """Convert historical get_tlm_values rows into Kayhan GNSS measurements, returning
+        """Convert historical time series rows into Kayhan GNSS measurements, returning
         the number of rows found and the downsampled measurements"""
         if not rows:
             return 0, []

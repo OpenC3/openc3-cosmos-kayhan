@@ -81,7 +81,7 @@ def options(**overrides):
 
 
 def tlm_row(seconds, offset=0.0):
-    """One get_tlm_values history row of [value, limits_state] pairs:
+    """One time series history row of [value, limits_state] pairs:
     packet time, then position XYZ and velocity XYZ"""
     values = [seconds] + [component + offset for component in [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]]
     return [[value, None] for value in values]
@@ -121,11 +121,11 @@ def kayhan_gps(monkeypatch):
     """The kayhan_gps module with its COSMOS and Kayhan dependencies stubbed.
 
     Exposes the calls the microservice made so tests can assert on them:
-      module.tlm_values_calls - (items, kwargs) passed to get_tlm_values
+      module.lookup_calls     - (items, kwargs) passed to CvtModel.tsdb_lookup
       module.injected         - (target, packet, item_hash) passed to inject_tlm
       module.uploads          - (object_id, content, filename) sent to Kayhan
       module.available        - what get_tlm_available returns, set per test
-      module.rows             - what get_tlm_values returns, set per test
+      module.rows             - what CvtModel.tsdb_lookup returns, set per test
     """
     import openc3.microservices.microservice as microservice_module
 
@@ -151,22 +151,22 @@ def kayhan_gps(monkeypatch):
     module.selected_options = selected_options
     module.available = list(AVAILABLE_ITEMS)
     module.rows = []
-    module.tlm_values_calls = []
+    module.lookup_calls = []
     module.injected = []
     module.uploads = []
 
     def get_tlm_available(items):
         return module.available
 
-    def get_tlm_values(items, **kwargs):
-        module.tlm_values_calls.append((items, kwargs))
+    def tsdb_lookup(items, **kwargs):
+        module.lookup_calls.append((items, kwargs))
         return module.rows
 
     def inject_tlm(target_name, packet_name, item_hash):
         module.injected.append((target_name, packet_name, item_hash))
 
     monkeypatch.setattr(module, "get_tlm_available", get_tlm_available)
-    monkeypatch.setattr(module, "get_tlm_values", get_tlm_values)
+    monkeypatch.setattr(module.CvtModel, "tsdb_lookup", staticmethod(tsdb_lookup))
     monkeypatch.setattr(module, "inject_tlm", inject_tlm)
     monkeypatch.setattr(module, "Sleeper", FakeSleeper)
 

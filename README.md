@@ -19,9 +19,10 @@ for details.
 
 ## Requirements
 
-- OpenC3 COSMOS 7.1.0 or later. GPS history is read with `get_tlm_values`
-  using a `start_time` / `end_time`, which queries the COSMOS time series
-  database.
+- OpenC3 COSMOS 7.1.0 or later. GPS history is read over a `start_time` /
+  `end_time` window from the COSMOS time series database, through
+  `CvtModel.tsdb_lookup` rather than the `get_tlm_values` API - see the note
+  in `query_gps_history` for why.
 - A Kayhan SatCat Operations Enterprise subscription with ODaaS enabled, and
   SatCat API client credentials.
 - The GPS telemetry must already be flowing into COSMOS from another plugin.
