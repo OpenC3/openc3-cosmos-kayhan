@@ -179,3 +179,4 @@ Contributing is easy.
 ## License
 
 This OpenC3 plugin is released under the MIT License. See [LICENSE.md](LICENSE.md)
+
